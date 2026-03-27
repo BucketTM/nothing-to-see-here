@@ -31,7 +31,7 @@ ctxsw:
 // TODO: Save process state, including at least the 
 //	callee-save ("non-volatile") registers.
 
-sd a0, CTX_A0*8(a0)  //load all of the a registers and the 3 special ones like stack pointer
+sd a0, CTX_A0*8(a0)
 sd a1, CTX_A1*8(a0)
 sd a2, CTX_A2*8(a0)
 sd a3, CTX_A3*8(a0)
@@ -40,7 +40,6 @@ sd a5, CTX_A5*8(a0)
 sd a6, CTX_A6*8(a0)
 sd a7, CTX_A7*8(a0)
 
-/* save callee-save registers */
 sd s0,  CTX_S0*8(a0)
 sd s1,  CTX_S1*8(a0)
 sd s2,  CTX_S2*8(a0)
@@ -56,18 +55,20 @@ sd s11, CTX_S11*8(a0)
 
 sd ra, CTX_RA*8(a0)
 sd sp, CTX_SP*8(a0)
+sd gp, CTX_GP*8(a0)
+sd tp, CTX_TP*8(a0)
+sd t0, CTX_T0*8(a0)
+sd t1, CTX_T1*8(a0)
+sd t2, CTX_T2*8(a0)
+sd t3, CTX_T3*8(a0)
+sd t4, CTX_T4*8(a0)
+sd t5, CTX_T5*8(a0)
+sd t6, CTX_T6*8(a0)
 
-/* In normal execution, the "resume PC" after ctxsw() is the return address. */
 sd ra, CTX_PC*8(a0)
-
-//use incluse >>riscV. h
-
-
 
 // TODO: Switch from old process stack to new process stack.
 ld sp, CTX_SP*8(a1)
-
-
 
 // TODO: Restore process state, including at least the
 //	callee-save ("non-volatile") registers.
@@ -81,11 +82,9 @@ ld sp, CTX_SP*8(a1)
 //	for the very first time we ctxsw() to a new process, when they
 //	are different.  See create() for more details.
 
-/* Load the target PC first (use a temporary) and RA separately */
 ld t0, CTX_PC*8(a1)
 ld ra, CTX_RA*8(a1)
 
-/* restore callee-save registers */
 ld s0,  CTX_S0*8(a1)
 ld s1,  CTX_S1*8(a1)
 ld s2,  CTX_S2*8(a1)
@@ -99,7 +98,15 @@ ld s9,  CTX_S9*8(a1)
 ld s10, CTX_S10*8(a1)
 ld s11, CTX_S11*8(a1)
 
-/* restore argument registers (do a1 last so we can keep using it as the base) */
+ld gp, CTX_GP*8(a1)
+ld tp, CTX_TP*8(a1)
+ld t1, CTX_T1*8(a1)
+ld t2, CTX_T2*8(a1)
+ld t3, CTX_T3*8(a1)
+ld t4, CTX_T4*8(a1)
+ld t5, CTX_T5*8(a1)
+ld t6, CTX_T6*8(a1)
+
 ld a0, CTX_A0*8(a1)
 ld a2, CTX_A2*8(a1)
 ld a3, CTX_A3*8(a1)
@@ -109,39 +116,18 @@ ld a6, CTX_A6*8(a1)
 ld a7, CTX_A7*8(a1)
 ld a1, CTX_A1*8(a1)
 
-// Note: This ret line immediately returns from whence we came.  This
-//	is here as a placeholder so that you don't crash your O/S when
-//	you call ctxsw() before it is complete.  But, this line of code
-//	is not actually a part of a completed solution.
-//	ret
+/* Project 7: install target page table before returning */
+ld t5, CTX_KERNSATP*8(a1)
+sfence.vma zero, zero
+csrw satp, t5
+sfence.vma zero, zero
 
-// ASSIGNMENT 5 TODO:
-// Note: the following code is for the next assignment.  DO NOT uncomment it
-//      until you believe your trap handler is working.
-// Determine which privilege mode the process should be in
-//	ld t0, (**REGISTER THAT HOLDS NEW CONTEXT PROGRAM COUNTER**)
-//	beq t0, ra, switch
-//	li t4, SSTATUS_S_MODE
-//	csrc sstatus, t4
-//	csrw sepc, t0
-//
-//	sret
-//switch:
-//	ret
+beq t0, ra, switch
 
-	/* Determine which privilege mode the process should be in */
-	/* t0 already holds the new context program counter */
-	beq t0, ra, switch
-
-	/* Return to user mode on sret (clear SPP bit using mask from riscv.h) */
-	li  t4, SSTATUS_S_MODE
-	csrc sstatus, t4
-
-	/* Set exception program counter to the process entry point */
-	csrw sepc, t0
-
-	/* Return from trap into the process */
-	sret
+li t4, SSTATUS_S_MODE
+csrc sstatus, t4
+csrw sepc, t0
+sret
 
 switch:
 	ret

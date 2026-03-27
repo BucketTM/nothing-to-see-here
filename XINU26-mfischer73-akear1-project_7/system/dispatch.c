@@ -15,7 +15,7 @@
  * @param frame  The stack pointer of the process that caused the interupt
  * @param program_counter  The value of the sepc register
  */
-void dispatch(ulong cause, ulong val, ulong *frame, ulong *program_counter)
+ulong dispatch(ulong cause, ulong val, ulong *frame, ulong *program_counter)
 {
     ulong swi_opcode;
 
@@ -33,7 +33,6 @@ void dispatch(ulong cause, ulong val, ulong *frame, ulong *program_counter)
         *
         * If the trap is not an environment call from U-Mode call xtrap
         */
-
         if (cause == E_ENVCALL_FROM_UMODE) { //this is the inturrupt for cause register
             /* syscall number is placed in a7 by the SYSCALL() macro */
             swi_opcode = frame[CTX_A7];
@@ -60,13 +59,14 @@ void dispatch(ulong cause, ulong val, ulong *frame, ulong *program_counter)
             if (handler) {
                 (*handler)();
             } else {
-                kprintf("ERROR: No handler registered for interrupt %u\r\n",
-                        irq_num);
-                while (1)
-                    ;
+                kprintf("ERROR: No handler registered for interrupt %u\r\n", irq_num);
+                while (1) 
+			;//nothing
             }
         } else {
             xtrap(frame, cause, val, program_counter);
         }
     }
+
+    return MAKE_SATP(currpid, ppcb ->pagetable);
 }

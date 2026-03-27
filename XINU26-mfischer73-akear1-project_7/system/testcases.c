@@ -5,7 +5,7 @@
  *
  * Modified by:	
  *
- * TA-BOT:MAILTO 
+ * TA-BOT:MAILTO arthur.kear@marquette.edu AND margarette.fischer@marquette.edu
  *
  */
 /* Embedded XINU, Copyright (C) 2023.  All rights reserved. */
@@ -19,6 +19,15 @@ pgtbl createFakeTable(void){
 	pgtbl root = pgalloc();
 	pgtbl lvl1 = pgalloc();
 	pgtbl lvl0 = pgalloc();
+
+	if (root == NULL || lvl1 == NULL || lvl0 == NULL)
+	{
+		return NULL;
+	}
+
+	memset(root, 0, PAGE_SIZE);
+	memset(lvl1, 0, PAGE_SIZE);
+	memset(lvl0, 0, PAGE_SIZE);
 
 	volatile ulong *pte = &(root[5]);
 	*pte = PA2PTE(lvl1) | PTE_V;
@@ -38,6 +47,41 @@ pgtbl createFakeTable(void){
 	return root;
 }
 
+static void printPageTableLevel(pgtbl pagetable, int level)
+{
+	int i;
+
+	if (pagetable == NULL)
+	{
+		return;
+	}
+
+	for (i = 0; i < PTE_MAX; i++)
+	{
+		ulong pte = pagetable[i];
+
+		if ((pte & PTE_V) == 0)
+		{
+			continue;
+		}
+
+		if ((pte & (PTE_R | PTE_W | PTE_X)) == 0)
+		{
+			kprintf("L%d[%3d] = 0x%08X\r\n", level, i, pte);
+
+			if (level > 0)
+			{
+				printPageTableLevel((pgtbl)PTE2PA(pte), level - 1);
+			}
+		}
+		else
+		{
+			kprintf("L%d[%3d] = 0x%08X -> PA 0x%08X\r\n",
+			        level, i, pte, PTE2PA(pte));
+		}
+	}
+}
+
 void printPageTable(pgtbl pagetable)
 {
 	/*
@@ -48,6 +92,12 @@ void printPageTable(pgtbl pagetable)
 	* table.  If it is a leaf, print the page table entry and the
 	* physical address is maps to. 
 	*/
+	printPageTableLevel(pagetable, 2);
+
+	//if valid
+	//printPageTableLevel()
+	//printInfo <--- print all the stored leaf info recursively 
+	//need the adresses printed so we need PTE_R , PTE_W , PTE_X 
 }
 
 /**
@@ -55,38 +105,15 @@ void printPageTable(pgtbl pagetable)
  */
 void testcases(void)
 {
-	uchar c;
+	pgtbl fake;
 
 	kprintf("===TEST BEGIN===\r\n");
 
 	// TODO: Test your operating system!
 
-	c = kgetc();
-	switch (c)
-	{
-		case '0':
-			// TODO: Write a testcase that creates a user process
-			// and prints out it's page table
-			break;
-		case '1':
-			// TODO: Write a testcase that demonstrates a user
-			// process cannot access certain areas of memory
-			break;
-		case '2':
-			// TODO: Write a testcase that demonstrates a user
-			// process can read kernel variables but cannot write
-			// to them
-			break;
-		case '3':
-			// TODO: Extra credit! Add handling in xtrap to detect
-			// and print out a Null Pointer Exception.  Write a
-			// testcase that demonstrates your OS can detect a
-			// Null Pointer Exception.
-			break;
-		default:
-			break;
-	}
+	fake = createFakeTable();
+	printPageTable(fake);
 
-	kprintf("\r\n===TEST END===\r\n");
+	kprintf("===TEST END===\r\n");
 	return;
 }
