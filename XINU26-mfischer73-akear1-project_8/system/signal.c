@@ -40,7 +40,7 @@ syscall signal(semaphore sem)
 	if (semtab[sement]==NULL){
 		return SYSERR;
 	}
-	if (isempty(semptr->queue){
+	if (isempty(semptr->queue)){
 		;
 	}
 
