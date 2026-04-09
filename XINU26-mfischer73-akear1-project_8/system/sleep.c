@@ -40,9 +40,16 @@ syscall sleep(ulong ms)
 ulong wakeup(void)
 {
 #if CLOCK
+    irqmask im;
 
-    // TODO: wake all processes that are done sleeping
+    im = disable();
 
+    while (nonempty(sleepq) && firstkey(sleepq) <= 0)
+    {
+        ready(dequeue(sleepq), RESCHED_NO);
+    }
+
+    restore(im);
     return OK;
 #else
     return SYSERR;
